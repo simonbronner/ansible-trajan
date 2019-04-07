@@ -1,0 +1,11 @@
+- name: http config
+  template:
+    src: nginx.conf
+    dest: /var/bronner/etc/nginx/conf.d/{{ host_name }}.conf
+  become: yes
+
+- name: restart reverse-proxy
+  docker_container:
+    name: reverse-proxy
+    state: started
+    restart: yes

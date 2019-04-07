@@ -1,0 +1,2 @@
+[containerhosts]
+trajan.bronner.network ansible_user=simon.bronner ansible_ssh_private_key_file=/ssh/simon.bronner@rubik.com.au

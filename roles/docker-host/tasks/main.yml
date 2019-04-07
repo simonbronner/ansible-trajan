@@ -1,0 +1,61 @@
+- name: Install apt-transport-https
+  become: yes
+  apt:
+    name: apt-transport-https
+    state: present
+
+- name: Install ca-certificates
+  become: yes
+  apt:
+    name: ca-certificates
+    state: present
+
+- name: Install curl
+  become: yes
+  apt:
+    name: curl
+    state: present
+
+- name: Install software-properties-common
+  become: yes
+  apt:
+    name: software-properties-common
+    state: present
+
+- name: Update APT cache
+  become: yes
+  apt:
+    update_cache: yes
+
+- name: Install docker
+  become: yes
+  apt:
+    name: docker.io
+    state: present
+
+- name: Install pip
+  become: yes
+  apt:
+    name: python-pip
+    state: present    
+
+- name: add user to docker group
+  become: yes
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+
+- name: install docker for python (required for ansible to use docker)
+  become: yes
+  pip:
+    name: "docker<3.0"
+    state: present
+
+- name: Create a network
+  docker_network:
+    name: bronner
+    ipam_options:
+      subnet: '172.100.0.0/16'
+  become: yes
+

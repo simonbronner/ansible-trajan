@@ -1,0 +1,94 @@
+- name: Remove static files
+  file:
+    path: "{{ item }}"
+    state: absent
+  become: yes
+  with_items:
+  - /var/bronner/trajan-static
+
+- name: create folders
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  become: yes
+  with_items:
+  - /var/bronner/trajan-service
+  - /var/bronner/trajan-data
+  - /var/bronner/trajan-static
+
+- name: create the trajan-database container
+  docker_container:
+    name: datomic.server
+    image: sxbronner/trajan-database
+    hostname: datomic.server
+    state: started
+    restart: yes
+    recreate: yes
+    purge_networks: yes
+    pull: yes
+    working_dir: /home/datomic
+    networks:
+    - name: bronner
+    env:
+      TZ: Australia/Melbourne
+    volumes:
+    - /var/bronner/trajan-data:/home/datomic/data
+
+- name: create the trajan-service container
+  docker_container:
+    name: trajan-service
+    image: sxbronner/trajan-server
+    state: started
+    restart: yes
+    recreate: yes
+    purge_networks: yes
+    pull: yes
+    networks:
+    - name: bronner
+    env:
+      TZ: Australia/Melbourne
+    command: ["--server", "--database", "datomic:free://datomic.server:4334/trajan?password=simonsays1"]
+
+- name: create the trajan-ui container
+  docker_container:
+    name: trajan-ui
+    image: sxbronner/trajan-ui
+    state: started
+    restart: yes
+    recreate: yes
+    purge_networks: yes
+    pull: yes
+    networks:
+    - name: bronner
+    env:
+      TZ: Australia/Melbourne
+      TRAJAN_SERVICE_URL: "http://trajan-service:8001/"
+
+- name: Copy the trajan-ui static files
+  command: docker run --rm --name trajanstatic -v /var/bronner/trajan-static:/static -v /etc/passwd:/etc/passwd sxbronner/trajan-ui python manage.py collectstatic
+
+- name: Change ownership of static files
+  file:
+    path: /var/bronner/trajan-static
+    recurse: yes
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  become: yes
+
+- name: nginx config
+  template:
+    src: nginx.conf
+    dest: /var/bronner/etc/nginx/conf.d/services/trajan.conf
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0755
+  become: yes
+
+- name: restart reverse-proxy
+  docker_container:
+    name: reverse-proxy
+    state: started
+    restart: yes

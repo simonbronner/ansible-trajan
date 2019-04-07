@@ -1,0 +1,21 @@
+- name: template config for lets encrypt certificates
+  template:
+    src: cli.ini
+    dest: /var/bronner/etc/certbot/cli.ini
+  become: yes
+
+- name: register/renew certs
+  docker_container:
+    name: certbot
+    image: certbot/certbot:latest
+    recreate: yes
+    command: >
+      certonly
+      --webroot -w /var/www
+      --non-interactive
+      --agree-tos 
+      --preferred-challenges http
+    volumes:
+    - /var/bronner/www_root/letsencrypt:/var/www
+    - /var/bronner/etc/certbot:/etc/letsencrypt
+  become: yes

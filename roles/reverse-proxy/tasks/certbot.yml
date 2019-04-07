@@ -1,0 +1,24 @@
+- name: create certbot folder
+  file:
+    path: "{{ item }}"
+    state: directory
+  become: yes
+  with_items:
+  - /var/bronner/etc/certbot
+
+- include: renew_certs.yml
+  vars:
+    domains: 
+    - "{{ host_name }}"
+    email: "{{ support_email }}"
+
+- wait_for:
+    path: /var/bronner/etc/certbot/live/{{ host_name }}
+    delay: 10
+  become: yes
+
+- name: restart reverse-proxy
+  docker_container:
+    name: reverse-proxy
+    state: started
+    restart: yes
